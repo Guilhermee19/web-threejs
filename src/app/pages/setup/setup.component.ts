@@ -1,6 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import * as THREE from 'three';
 
+import Stats from 'three/examples/jsm/libs/stats.module.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+
 @Component({
   selector: 'app-setup',
   templateUrl: './setup.component.html',
@@ -8,58 +12,51 @@ import * as THREE from 'three';
 })
 export class SetupComponent implements OnInit {
 
-  options = {
-    targetSelector: '#scene',
-    width: 800,
-    heigth: 600,
-    backgroundColor: 0x141414
-  }
-
   ngOnInit(){
-    const renderer = new THREE.WebGLRenderer();
+    const container = document.getElementById( 'scene' ) as HTMLDivElement;
 
-    renderer.setSize(
-      this.options.width,
-      this.options.heigth,
+    const renderer = new THREE.WebGLRenderer(
+      { antialias: true } // Retira o pixelado q pode ficar das pontas
+    );
+    renderer.setPixelRatio(
+      window.devicePixelRatio // Deixa da maxima qualidade possivel do computador
     )
-    document.querySelector(this.options.targetSelector)?.append(renderer.domElement);
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    container.appendChild( renderer.domElement );
+
+    const pmremGenerator = new THREE.PMREMGenerator( renderer );
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(
-      this.options.backgroundColor
-    )
-    const camera = new THREE.PerspectiveCamera(
-      50, (this.options.width/ this.options.heigth)
-    );
-    camera.position.z = 5;
+    scene.background = new THREE.Color( 0x141414 );
+    scene.environment = pmremGenerator.fromScene( new RoomEnvironment( renderer ), 0.04 ).texture;
 
-    const light = new THREE.AmbientLight(
-      0xFFFFFF, 4
+    const camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 100 );
+    camera.position.set( 5, 2, 8 );
+
+    const controls = new OrbitControls( camera, renderer.domElement );
+    controls.target.set( 0, 0.5, 0 );
+    controls.update();
+    controls.enablePan = true;
+    controls.enableDamping = true;
+
+    const light = new THREE.HemisphereLight(
+      0xFFFFFF, 0x080820, 2
     );
     scene.add(light)
-
 
     const cube = this.createCubo()
     scene.add(cube)
 
-    renderer.setAnimationLoop(() => {
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
-
-      renderer.render(scene, camera)
-    })
-
+    renderer.render(scene, camera,)
   }
 
   createCubo(){
-    const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshLambertMaterial(
-      { color: 0xecc035 }
+      { color: 0x348feb }
     );
 
     return new THREE.Mesh(
-      geometry, material
+      new THREE.BoxGeometry(), material
     )
   }
-
 }
