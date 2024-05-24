@@ -73,18 +73,13 @@ export class ThreeService {
   }
 
   // Carrega e adiciona um arquivo .obj à cena com posição e escala específicas
-  public loadObj(objPath: string, position: THREE.Vector3, scale: number) {
+  public loadObj(scene: THREE.Scene ,objPath: string, position: THREE.Vector3, scale: number) {
     const loader = new OBJLoader();
     loader.load(objPath, (obj) => {
-      obj.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.scale.set(scale, scale, scale); // Ajusta a escala do objeto
-        }
-      });
       const group = new THREE.Group();
       group.add(obj);
       group.position.copy(position);
-      this.scene.add(group);
+      scene.add(group);
     });
   }
 
@@ -180,31 +175,31 @@ export class ThreeService {
     requestAnimationFrame(() => this.animate());
 
     // Verifica se os controles estão travados (o jogador está ativo)
-    if (this.controls.isLocked === true) {
-      // Obtém o tempo atual para calcular o intervalo de tempo desde a última atualização
-      const time = performance.now();
-      const delta = (time - this.prevTime) / 1000; // Calcula o intervalo de tempo em segundos
+    if (!this.controls.isLocked) return
 
-      // Aplica a física de movimento de acordo com as teclas pressionadas e a velocidade
-      this.velocity.x -= this.velocity.x * 10.0 * delta; // Aplica atrito no eixo X
-      this.velocity.z -= this.velocity.z * 10.0 * delta; // Aplica atrito no eixo Z
+    // Obtém o tempo atual para calcular o intervalo de tempo desde a última atualização
+    const time = performance.now();
+    const delta = (time - this.prevTime) / 1000; // Calcula o intervalo de tempo em segundos
 
-      // Calcula a direção de movimento com base nas teclas pressionadas
-      this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-      this.direction.x = Number(this.moveLeft) - Number(this.moveRight);
-      this.direction.normalize(); // Normaliza o vetor de direção para garantir movimento consistente em todas as direções
+    // Aplica a física de movimento de acordo com as teclas pressionadas e a velocidade
+    this.velocity.x -= this.velocity.x * 10.0 * delta; // Aplica atrito no eixo X
+    this.velocity.z -= this.velocity.z * 10.0 * delta; // Aplica atrito no eixo Z
 
-      // Aplica a velocidade de movimento de acordo com as teclas pressionadas e a velocidade definida
-      if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * this.movementSpeed * delta;
-      if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * this.movementSpeed * delta;
+    // Calcula a direção de movimento com base nas teclas pressionadas
+    this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+    this.direction.x = Number(this.moveLeft) - Number(this.moveRight);
+    this.direction.normalize(); // Normaliza o vetor de direção para garantir movimento consistente em todas as direções
 
-      // Move os controles da câmera na cena com base na velocidade calculada
-      this.controls.moveRight(-this.velocity.x * delta); // Move os controles para a direita ou esquerda
-      this.controls.moveForward(-this.velocity.z * delta); // Move os controles para frente ou para trás
+    // Aplica a velocidade de movimento de acordo com as teclas pressionadas e a velocidade definida
+    if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * this.movementSpeed * delta;
+    if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * this.movementSpeed * delta;
 
-      // Atualiza o tempo anterior para o próximo ciclo de animação
-      this.prevTime = time;
-    }
+    // Move os controles da câmera na cena com base na velocidade calculada
+    this.controls.moveRight(-this.velocity.x * delta); // Move os controles para a direita ou esquerda
+    this.controls.moveForward(-this.velocity.z * delta); // Move os controles para frente ou para trás
+
+    // Atualiza o tempo anterior para o próximo ciclo de animação
+    this.prevTime = time;
 
     // Renderiza a cena com a câmera atual
     this.renderer.render(this.scene, this.camera);
