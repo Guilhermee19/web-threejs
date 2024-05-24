@@ -99,7 +99,9 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/three-x3/dist/x3-standalone.js"
+            ]
           }
         }
       }

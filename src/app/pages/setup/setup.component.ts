@@ -1,9 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
+import { NOCLAF_511, TObject3D } from 'src/app/constants/noclaf';
+import { ThreeService } from 'src/app/services/three.service';
 import * as THREE from 'three';
-
-import Stats from 'three/examples/jsm/libs/stats.module.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 @Component({
   selector: 'app-setup',
@@ -12,51 +10,64 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 })
 export class SetupComponent implements OnInit {
 
-  ngOnInit(){
-    const container = document.getElementById( 'scene' ) as HTMLDivElement;
-
-    const renderer = new THREE.WebGLRenderer(
-      { antialias: true } // Retira o pixelado q pode ficar das pontas
-    );
-    renderer.setPixelRatio(
-      window.devicePixelRatio // Deixa da maxima qualidade possivel do computador
-    )
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    container.appendChild( renderer.domElement );
-
-    const pmremGenerator = new THREE.PMREMGenerator( renderer );
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x141414 );
-    scene.environment = pmremGenerator.fromScene( new RoomEnvironment( renderer ), 0.04 ).texture;
-
-    const camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 1, 100 );
-    camera.position.set( 5, 2, 8 );
-
-    const controls = new OrbitControls( camera, renderer.domElement );
-    controls.target.set( 0, 0.5, 0 );
-    controls.update();
-    controls.enablePan = true;
-    controls.enableDamping = true;
-
-    const light = new THREE.HemisphereLight(
-      0xFFFFFF, 0x080820, 2
-    );
-    scene.add(light)
-
-    const cube = this.createCubo()
-    scene.add(cube)
-
-    renderer.render(scene, camera,)
+  @HostListener('window:resize', ['$event'])
+  onWindowResize(event: Event) {
+    this.adjustWindowSize();
   }
 
-  createCubo(){
-    const material = new THREE.MeshLambertMaterial(
-      { color: 0x348feb }
-    );
+  constructor(
+    public threeService: ThreeService
+  ){}
 
-    return new THREE.Mesh(
-      new THREE.BoxGeometry(), material
-    )
+  renderer!: THREE.WebGLRenderer;
+  scene!: THREE.Scene;
+  camera!: THREE.PerspectiveCamera;
+
+  noclaf: TObject3D[] = NOCLAF_511
+
+  ngOnInit() {
+    this.initScene();
+    this.initCamera();
+    this.initRenderer();
+    this.addElements();
+    this.adjustWindowSize();
+  }
+
+  private initScene() {
+    this.scene = this.threeService.initScene();
+  }
+
+  private initCamera() {
+    this.camera = this.threeService.initCamera();
+  }
+
+  private async initRenderer() {
+    const container = document.getElementById('scene') as HTMLDivElement;
+    this.renderer = await this.threeService.initRenderer();
+    await container.appendChild(this.renderer.domElement);
+  }
+
+  private addElements() {
+    this.noclaf.forEach(el => {
+      if(el.type === 'IMG'){
+        const floor = this.threeService.createObjWithTexture(
+          el.width, el.height, el.depth, el.texture
+        );
+        this.threeService.setPosition(floor, el.position.x, el.position.y, el.position.z);
+        this.scene.add(floor);
+      }
+      else if(el.type === 'OBJ'){
+        const floor = this.threeService.createObj( el.width, el.height, el.depth, el.color);
+        this.threeService.setPosition(floor, el.position.x, el.position.y, el.position.z);
+        this.scene.add(floor);
+      }
+    });
+  }
+
+
+  private adjustWindowSize() {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 }
